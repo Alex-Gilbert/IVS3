@@ -1,20 +1,24 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-
+using System.Runtime.Remoting;
 using Particle = UnityEngine.ParticleSystem.Particle;
 
 public class N22 : MonoBehaviour
 {
     public TextAsset dataSet;
     private Quaternion[] data;
+    private string[] words;
+    private int[] types;
     private ParticleSystem ps;
+
+    public float Radius;
 
     Quaternion baseRotation;
 
     Quaternion[] rotations;
 
-    [Range(.005f, .04f)]
+    [Range(.005f, 1f)]
     public float ParticleSize = .03f;
     private float currentSize;
 
@@ -28,14 +32,14 @@ public class N22 : MonoBehaviour
 
     Quaternion bottom;
 
+    public Text wordText;
+
     void Start()
     {
         ps = GetComponent<ParticleSystem>();
         CreatePoints();
 
-        inv = Vector3.zero;
-
-        Debug.Log("I'm doing somehting");
+        inv = new Vector3(0,0,0);
 
         camT = Camera.main.transform;
         baseRotation = Quaternion.identity;
@@ -51,8 +55,10 @@ public class N22 : MonoBehaviour
 
         points = new Particle[lines.Length - 2];//lines.Length - 1];
         data = new Quaternion[lines.Length - 2];//lines.Length - 1];
+        words = new string[lines.Length - 2];//lines.Length - 1];
+        types = new int[lines.Length - 2];//lines.Length - 1];
 
-        for(int i = 1; i < lines.Length - 1; ++i)
+        for (int i = 1; i < lines.Length - 1; ++i)
         {
             var line = lines[i].Split(' ');
             
@@ -62,12 +68,14 @@ public class N22 : MonoBehaviour
             
 
             data[i - 1] = new Quaternion(normal.x, normal.y, normal.z, normal.w);
+            words[i - 1] = line[0];
             int type = int.Parse(line[1]);
-
+            types[i - 1] = type;
+            float length = ParticleSize * Mathf.Pow((1/float.Parse(line[2])), 1.2f);
             var particle = new Particle()
             {
                 position = StereographicProjection(normal),
-                size = ParticleSize,//Mathf.Abs(ParticleSize * float.Parse(line[2])),
+                size = length,//Mathf.Abs(ParticleSize * float.Parse(line[2])),
                 color = type == 0 ? Color.red :
                         type == 1 ? Color.green : 
                         type == 2 ? Color.blue : 
@@ -83,7 +91,7 @@ public class N22 : MonoBehaviour
 
     Vector3 StereographicProjection(Vector4 v4)
     {
-        if (v4.w == 1)
+        if (v4.w >= 1)
         {
             return Vector3.one * 100;
         }
@@ -92,79 +100,92 @@ public class N22 : MonoBehaviour
 
     void Update()
     {
-        float inX = Input.GetAxis("Horizontal");
-        float inY = Input.GetAxis("Vertical");
-
-        inv = -camT.right * inX + -camT.forward * inY;
-
-        Vector3 invn = inv.normalized;
-
-        Quaternion inq = new Quaternion(invn.x, invn.y, invn.z, 0);
-        Quaternion referentialshift = Quaternion.Inverse(inq) * bottom;
-
-        baseRotation = Quaternion.Lerp(Quaternion.identity, referentialshift, Time.deltaTime * inv.magnitude * .25f);
-
-        rotations[0] = baseRotation * rotations[0];
-        rotations[1] = rotations[1] * baseRotation;
-
-        for (int i = 0; i < data.Length; i++)
+        if (MouseControls.rotate)
         {
-            /*normalizedZ4[i] = rotation * normalizedZ4[i] * rotation;
+            var inX = Input.GetAxis("Horizontal");
+            var inY = Input.GetAxis("Vertical");
+
+            inv = -camT.right*inX + -camT.forward*inY;
+
+            var invn = inv.normalized;
+
+            var inq = new Quaternion(invn.x, invn.y, invn.z, 0);
+            var referentialshift = Quaternion.Inverse(inq)*bottom;
+
+            baseRotation = Quaternion.Lerp(Quaternion.identity, referentialshift, Time.deltaTime*inv.magnitude*.25f);
+
+            rotations[0] = baseRotation*rotations[0];
+            rotations[1] = rotations[1]*baseRotation;
+
+            for (var i = 0; i < data.Length; i++)
+            {
+                /*normalizedZ4[i] = rotation * normalizedZ4[i] * rotation;
 
             var p = new Vector3(normalizedZ4[i].x / (1 - normalizedZ4[i].w), normalizedZ4[i].y / (1 - normalizedZ4[i].w), normalizedZ4[i].z / (1 - normalizedZ4[i].w));*/
 
-            var rot = rotations[0] * data[i] * rotations[1];
-            var p = new Vector3(rot.x / (1 - rot.w), rot.y / (1 - rot.w), rot.z / (1 - rot.w));
-            points[i].position = p;
-            points[i].size = ParticleSize;
+                var rot = rotations[0]*data[i]*rotations[1];
+                var p = new Vector3(rot.x/(1 - rot.w), rot.y/(1 - rot.w), rot.z/(1 - rot.w));
+                points[i].position = p;
+                //points[i].size = ParticleSize;
+            }
+        }
+        else
+        {
+            var mouseP = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,
+                Input.mousePosition.y, Camera.main.nearClipPlane));//Camera.main.ScreenToWorldPoint(Input.mousePosition);
+
+            var mouseVec = mouseP - camT.position;
+            mouseVec.Normalize();
+            
+            float minDistance = 10000f;
+            int curPoint = -1;
+            for (int index = 0; index < points.Length; index++)
+            {
+                var p = points[index];
+                points[index].color = types[index] == 0
+                    ? Color.red
+                    : types[index] == 1
+                        ? Color.green
+                        : types[index] == 2
+                            ? Color.blue
+                            : types[index] == 3
+                                ? Color.yellow
+                                : Color.magenta;
+
+                var newVec = p.position - camT.position;
+
+                var dot = Vector3.Dot(mouseVec, newVec);
+                var magSquared = newVec.sqrMagnitude;
+                var r = Radius*p.size;
+                var radSquared = r*r;
+
+                if (dot*dot >= ((magSquared*magSquared)/(magSquared + radSquared)) && dot > 0)
+                {
+                    if (curPoint == -1)
+                    {
+                        minDistance = Vector3.Distance(camT.position, p.position);
+                        curPoint = index;
+                    }
+                    else
+                    {
+                        float newDistance = Vector3.Distance(camT.position, p.position);
+                        if (newDistance < minDistance)
+                        {
+                            minDistance = newDistance;
+                            curPoint = index;
+                        }
+                    }
+                }
+            }
+
+            if (curPoint != -1)
+            {
+                points[curPoint].color = Color.white;
+                wordText.text = words[curPoint];
+            }
         }
 
         ps.SetParticles(points, points.Length);
-    }
-    
 
-    private Vector4 multByQ(Vector4 V, Quaternion Q)
-    {
-        Quaternion vq = new Quaternion(V.x, V.y, V.z, V.w);
-
-        Quaternion mult = Q * vq;
-
-        return new Vector4(mult.x, mult.y, mult.z, mult.w);
-    }
-
-    private Matrix4x4 QuatToMat(Quaternion quat)
-    {
-        Matrix4x4 toReturn = new Matrix4x4();
-        float xx2 = 2 * quat.x * quat.x;
-        float yy2 = 2 * quat.y * quat.y;
-        float zz2 = 2 * quat.z * quat.z;
-        float xy = 2 * quat.x * quat.y;
-        float xz = 2 * quat.x * quat.z;
-        float yz = 2 * quat.y * quat.z;
-        float wx = 2 * quat.w * quat.x;
-        float wy = 2 * quat.w * quat.y;
-        float wz = 2 * quat.w * quat.z;
-
-        toReturn[1, 1] = 1 - yy2 - zz2;
-        toReturn[1, 2] = xy - wz;
-        toReturn[1, 3] = xz + wy;
-        toReturn[1, 0] = 0;
-
-        toReturn[2, 1] = xy + wz;
-        toReturn[2, 2] = 1 - xx2 - zz2;
-        toReturn[2, 3] = yz + wx;
-        toReturn[2, 0] = 0;
-
-        toReturn[3, 1] = xz - wy;
-        toReturn[3, 2] = yz + wx;
-        toReturn[3, 3] = 1 - xx2 - yy2;
-        toReturn[3, 0] = 0;
-
-        toReturn[0, 1] = 0;
-        toReturn[0, 2] = 0;
-        toReturn[0, 3] = 0;
-        toReturn[0, 0] = 1;
-
-        return toReturn;
     }
 }
