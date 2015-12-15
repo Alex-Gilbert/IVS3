@@ -2056,7 +2056,7 @@ GameObject:
   - 114: {fileID: 1331126025}
   m_Layer: 5
   m_Name: Text
-  m_TagString: Untagged
+  m_TagString: Finish
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2129,7 +2129,7 @@ GameObject:
   - 114: {fileID: 1415906447}
   m_Layer: 0
   m_Name: Particles
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

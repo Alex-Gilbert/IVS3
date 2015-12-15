@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using UnityEngine.UI;
 
 public class DataPlot
 {
@@ -113,11 +114,27 @@ public class LoadJson
     public DataPlot LoadFromFile(string path)
     {
         DataPlot dataPlot = new DataPlot();
-        using (var reader = new StreamReader(path))
+        GameObject.FindGameObjectWithTag("Finish").GetComponent<Text>().text = "Loading " + path;
+        //using (var reader = new StreamReader(path))
+        //{
+        //    GameObject.FindGameObjectWithTag("Finish").GetComponent<Text>().text = "Loading 1";
+        //    dataPlot = Load(reader.ReadToEnd());
+        //}
+        StreamReader reader = null;
+        try
         {
+            reader = new StreamReader(path);
             dataPlot = Load(reader.ReadToEnd());
         }
-
+        catch (Exception e)
+        {
+            GameObject.FindGameObjectWithTag("Finish").GetComponent<Text>().text = e.Message;
+        }
+        finally
+        {
+            if (reader != null)
+                reader.Dispose();
+        }
         return dataPlot;
     }
 }

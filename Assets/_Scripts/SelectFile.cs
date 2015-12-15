@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 
 public class SelectFile : MonoBehaviour
 {
@@ -32,7 +33,7 @@ public class SelectFile : MonoBehaviour
 
     private FileBrowser fb = new FileBrowser();
 
-    public event Action<string> FileSelected;
+    //public event Action<string> FileSelected;
 
     public void Init()
     {
@@ -53,19 +54,23 @@ public class SelectFile : MonoBehaviour
         {
             if (fb.outputFile != null)
             {
-                OnFileSelected(fb.outputFile.ToString());
+                //OnFileSelected(fb.outputFile.ToString());
+                GameObject.FindGameObjectWithTag("Player").GetComponent<ParticlePlot>().CreatePoints(fb.outputFile.FullName);
             }
 
             _menuIsShowing = false;
+
         }
+        
     }
 
-    public void OnFileSelected(string path)
-    {
-        Debug.Log(path + " was selected!");
-        if (FileSelected != null)
-            FileSelected(path);
-    }
+
+    //public void OnFileSelected(string path)
+    //{
+    //    Debug.Log(path + " was selected!");
+    //    if (FileSelected != null)
+    //        FileSelected(path);
+    //}
 
     public void Select()
     {

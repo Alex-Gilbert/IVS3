@@ -63,7 +63,7 @@ public class ParticlePlot : MonoBehaviour
 
         _particleSystem.SetParticles(_particles, _particles.Length);
 
-        SelectFile.Instance.FileSelected += CreatePoints;
+        //SelectFile.Instance.FileSelected += CreatePoints;
 
         _xPos.text = "0";
         _yPos.text = "0";
@@ -72,6 +72,7 @@ public class ParticlePlot : MonoBehaviour
 
     public void CreatePoints(string filePath)
     {
+        _infoText.text = "Hit Me 1";
         _dataPlot = LoadJson.Instance.LoadFromFile(filePath);
         _particles = new Particle[_dataPlot.Particles.Length];
 
